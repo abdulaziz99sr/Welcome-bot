@@ -11,7 +11,6 @@ const {
 
 const path = require('path');
 
-
 // ==========================================
 // SETTINGS
 // ==========================================
@@ -24,17 +23,9 @@ const WELCOME_CHANNEL_ID = '1556384341544673291';
 const WIDTH = 1536;
 const HEIGHT = 1536;
 
-// صورة العضو
 const AVATAR_SIZE = 600;
 const AVATAR_X = (WIDTH - AVATAR_SIZE) / 2;
 const AVATAR_Y = 300;
-
-// اليوزر تحت الصورة
-const USERNAME_Y = 1000;
-
-const MAX_FONT_SIZE = 80;
-const MIN_FONT_SIZE = 35;
-const MAX_NAME_WIDTH = 1250;
 
 
 // ==========================================
@@ -50,7 +41,7 @@ const client = new Client({
 
 
 // ==========================================
-// BOT READY
+// READY
 // ==========================================
 
 client.once('ready', () => {
@@ -66,12 +57,11 @@ client.on('guildMemberAdd', async (member) => {
 
   try {
 
-    // يتأكد من السيرفر
     if (member.guild.id !== GUILD_ID) return;
 
 
     // ==========================================
-    // WELCOME CHANNEL
+    // GET WELCOME CHANNEL
     // ==========================================
 
     const channel = await member.guild.channels
@@ -85,32 +75,21 @@ client.on('guildMemberAdd', async (member) => {
 
 
     // ==========================================
-    // BACKGROUND
+    // LOAD BACKGROUND
     // ==========================================
-
-    const backgroundPath = path.join(
-      __dirname,
-      'welcome.PNG'
-    );
 
     const background = await loadImage(
-      backgroundPath
+      path.join(__dirname, 'welcome.PNG')
     );
 
 
     // ==========================================
-    // CANVAS
+    // CREATE CANVAS
     // ==========================================
 
-    const canvas = createCanvas(
-      WIDTH,
-      HEIGHT
-    );
-
+    const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext('2d');
 
-
-    // الخلفية
     ctx.drawImage(
       background,
       0,
@@ -121,7 +100,7 @@ client.on('guildMemberAdd', async (member) => {
 
 
     // ==========================================
-    // MEMBER AVATAR
+    // LOAD MEMBER AVATAR
     // ==========================================
 
     const avatarURL = member.user.displayAvatarURL({
@@ -129,13 +108,11 @@ client.on('guildMemberAdd', async (member) => {
       size: 1024
     });
 
-    const avatar = await loadImage(
-      avatarURL
-    );
+    const avatar = await loadImage(avatarURL);
 
 
     // ==========================================
-    // CIRCLE AVATAR
+    // DRAW CIRCLE AVATAR
     // ==========================================
 
     ctx.save();
@@ -151,7 +128,6 @@ client.on('guildMemberAdd', async (member) => {
     );
 
     ctx.closePath();
-
     ctx.clip();
 
     ctx.drawImage(
@@ -185,95 +161,35 @@ client.on('guildMemberAdd', async (member) => {
 
 
     // ==========================================
-    // USERNAME
+    // CREATE IMAGE
     // ==========================================
 
-    // يوزر حساب Discord الحقيقي
-    // مثال: @aziz99
-    const username = `@${member.user.username}`;
+    const buffer = await canvas.encode('png');
 
-    let fontSize = MAX_FONT_SIZE;
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#FFFFFF';
-
-
-    // يصغر الخط تلقائياً إذا اليوزر طويل
-    while (fontSize > MIN_FONT_SIZE) {
-
-      ctx.font = `bold ${fontSize}px sans-serif`;
-
-      const textWidth =
-        ctx.measureText(username).width;
-
-      if (textWidth <= MAX_NAME_WIDTH) {
-        break;
+    const attachment = new AttachmentBuilder(
+      buffer,
+      {
+        name: 'welcome.png'
       }
-
-      fontSize -= 2;
-    }
-
-
-    ctx.font =
-      `bold ${fontSize}px sans-serif`;
-
-    ctx.fillStyle = '#FFFFFF';
-
-    ctx.shadowColor =
-      'rgba(0, 0, 0, 0.95)';
-
-    ctx.shadowBlur = 15;
-
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
-
-    // رسم اليوزر تحت الدائرة
-    ctx.fillText(
-      username,
-      WIDTH / 2,
-      USERNAME_Y,
-      MAX_NAME_WIDTH
     );
 
 
-    // إلغاء الظل
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-
     // ==========================================
-    // FINAL IMAGE
-    // ==========================================
-
-    const buffer =
-      await canvas.encode('png');
-
-    const attachment =
-      new AttachmentBuilder(
-        buffer,
-        {
-          name: 'welcome.png'
-        }
-      );
-
-
-    // ==========================================
-    // SEND WELCOME
+    // MESSAGE + IMAGE
     // ==========================================
 
     await channel.send({
+      content: `𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝗧𝗼 𝗥𝗲𝘁𝗿𝗼 .. <@${member.id}>`,
+      files: [attachment]
+    });
 
-      content:
-        `𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝗧𝗼 𝗥𝗲𝘁𝗿𝗼 .. <@${member.id}>`,
 
-      files: [
-        attachment
-      ]
+    // ==========================================
+    // USERNAME UNDER IMAGE
+    // ==========================================
 
+    await channel.send({
+      content: `@${member.user.username}`
     });
 
 
