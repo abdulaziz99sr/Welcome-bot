@@ -11,30 +11,34 @@ const {
 
 const path = require('path');
 
+// ==============================
+// SETTINGS
+// ==============================
+
 const TOKEN = process.env.TOKEN;
 
 const GUILD_ID = '1554748054412992564';
 const WELCOME_CHANNEL_ID = '1556384341544673291';
 
-// ===== إعدادات التصميم =====
+// Canvas
 const WIDTH = 1536;
 const HEIGHT = 1536;
 
-// صورة العضو
+// Avatar
 const AVATAR_SIZE = 600;
-
-// مكان صورة العضو
 const AVATAR_X = (WIDTH - AVATAR_SIZE) / 2;
 const AVATAR_Y = 300;
 
-// إعدادات الاسم
+// Username
 const NAME_Y = 990;
-
 const MAX_FONT_SIZE = 70;
 const MIN_FONT_SIZE = 35;
-
-// أقصى عرض مسموح للاسم
 const MAX_NAME_WIDTH = 1250;
+
+
+// ==============================
+// CLIENT
+// ==============================
 
 const client = new Client({
   intents: [
@@ -43,29 +47,58 @@ const client = new Client({
   ]
 });
 
+
+// ==============================
+// READY
+// ==============================
+
 client.once('ready', () => {
   console.log(`WELCOME BOT ONLINE: ${client.user.tag}`);
 });
 
-client.on('guildMemberAdd', async member => {
+
+// ==============================
+// NEW MEMBER
+// ==============================
+
+client.on('guildMemberAdd', async (member) => {
+
   try {
+
+    // Only your server
     if (member.guild.id !== GUILD_ID) return;
 
+
+    // Get welcome channel
     const channel = await member.guild.channels.fetch(
       WELCOME_CHANNEL_ID
-    );
+    ).catch(() => null);
 
-    if (!channel || !channel.isTextBased()) return;
+    if (!channel || !channel.isTextBased()) {
+      console.log('Welcome channel not found.');
+      return;
+    }
 
-    // تحميل الخلفية
+
+    // ==============================
+    // LOAD BACKGROUND
+    // ==============================
+
     const background = await loadImage(
-      path.join(__dirname, 'welcome.png')
+      path.join(__dirname, 'welcome.PNG')
     );
+
+
+    // ==============================
+    // CREATE CANVAS
+    // ==============================
 
     const canvas = createCanvas(WIDTH, HEIGHT);
+
     const ctx = canvas.getContext('2d');
 
-    // رسم الخلفية
+
+    // Draw background
     ctx.drawImage(
       background,
       0,
@@ -74,7 +107,11 @@ client.on('guildMemberAdd', async member => {
       HEIGHT
     );
 
-    // تحميل صورة العضو
+
+    // ==============================
+    // LOAD MEMBER AVATAR
+    // ==============================
+
     const avatarURL = member.user.displayAvatarURL({
       extension: 'png',
       size: 1024
@@ -82,7 +119,10 @@ client.on('guildMemberAdd', async member => {
 
     const avatar = await loadImage(avatarURL);
 
-    // ===== قص صورة العضو بشكل دائري =====
+
+    // ==============================
+    // DRAW CIRCLE AVATAR
+    // ==============================
 
     ctx.save();
 
@@ -97,6 +137,7 @@ client.on('guildMemberAdd', async member => {
     );
 
     ctx.closePath();
+
     ctx.clip();
 
     ctx.drawImage(
@@ -109,7 +150,10 @@ client.on('guildMemberAdd', async member => {
 
     ctx.restore();
 
-    // ===== إطار أبيض حول الصورة =====
+
+    // ==============================
+    // WHITE AVATAR BORDER
+    // ==============================
 
     ctx.beginPath();
 
@@ -122,48 +166,68 @@ client.on('guildMemberAdd', async member => {
     );
 
     ctx.strokeStyle = '#FFFFFF';
+
     ctx.lineWidth = 8;
+
     ctx.stroke();
 
-    // ===== اسم العضو =====
+
+    // ==============================
+    // USERNAME
+    // ==============================
 
     const username = member.user.username;
 
     let fontSize = MAX_FONT_SIZE;
 
     ctx.textAlign = 'center';
+
     ctx.textBaseline = 'middle';
 
-    // يصغر الخط تلقائياً إذا الاسم طويل
+
+    // Automatically resize long usernames
     while (fontSize > MIN_FONT_SIZE) {
+
       ctx.font = `bold ${fontSize}px Arial`;
 
-      const width = ctx.measureText(username).width;
+      const textWidth = ctx.measureText(username).width;
 
-      if (width <= MAX_NAME_WIDTH) {
+      if (textWidth <= MAX_NAME_WIDTH) {
         break;
       }
 
       fontSize -= 2;
     }
 
+
     ctx.font = `bold ${fontSize}px Arial`;
+
     ctx.fillStyle = '#FFFFFF';
 
-    // ظل بسيط عشان الاسم يكون واضح
     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+
     ctx.shadowBlur = 12;
 
+
+    // Draw username
     ctx.fillText(
       username,
       WIDTH / 2,
-      NAME_Y
+      NAME_Y,
+      MAX_NAME_WIDTH
     );
 
+
+    // Remove shadow
     ctx.shadowBlur = 0;
 
-    // تحويل الصورة إلى PNG
+
+    // ==============================
+    // CREATE PNG
+    // ==============================
+
     const buffer = await canvas.encode('png');
+
 
     const attachment = new AttachmentBuilder(
       buffer,
@@ -172,14 +236,42 @@ client.on('guildMemberAdd', async member => {
       }
     );
 
-    // إرسال الصورة
+
+    // ==============================
+    // SEND WELCOME
+    // ==============================
+
     await channel.send({
-      files: [attachment]
+
+      content:
+        `𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝗧𝗼 𝗥𝗲𝘁𝗿𝗼 .. <@${member.id}>`,
+
+      files: [
+        attachment
+      ]
+
     });
 
+
+    console.log(
+      `Welcomed: ${member.user.tag}`
+    );
+
+
   } catch (error) {
-    console.error('WELCOME ERROR:', error);
+
+    console.error(
+      'WELCOME ERROR:',
+      error
+    );
+
   }
+
 });
+
+
+// ==============================
+// LOGIN
+// ==============================
 
 client.login(TOKEN);
