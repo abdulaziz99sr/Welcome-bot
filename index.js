@@ -40,4 +40,4 @@ ctx.fillText(
 ctx.shadowColor = 'transparent';
 ctx.shadowBlur = 0;
 ctx.shadowOffsetX = 0;
-ctx.shadowOffsetY = 0;
+ctx.shadowOffsetY = 0; 
